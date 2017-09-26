@@ -919,6 +919,7 @@ namespace Nop.Services.Shipping
         public virtual GetPickupPointsResponse GetPickupPoints(Address address, Customer customer = null, string providerSystemName = null, int storeId = 0)
         {
             var result = new GetPickupPointsResponse();
+
             var pickupPointsProviders = LoadActivePickupPointProviders(customer, storeId);
 
             if (!string.IsNullOrEmpty(providerSystemName))
@@ -946,10 +947,15 @@ namespace Nop.Services.Shipping
                 }
             }
 
-            //any pickup points is enough
-            if (allPickupPoints.Count > 0)
+            if (_shippingSettings.ReturnValidOptionsIfThereAreAny)
             {
-                result.Errors.Clear();
+                //return valid pickup points if there are any (no matter of the errors returned by other pickup point providers)
+                if (allPickupPoints.Any() && result.Errors.Any())
+                    result.Errors.Clear();
+            }
+
+            if (allPickupPoints.Any())
+            {
                 result.PickupPoints = allPickupPoints.OrderBy(point => point.DisplayOrder).ThenBy(point => point.Name).ToList();
             }
 

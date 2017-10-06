@@ -4364,6 +4364,52 @@ namespace Nop.Admin.Controllers
 
         #endregion
 
+        #region Custom Workshow actions
+
+        [ChildActionOnly]
+        public virtual ActionResult OrderByStoreReport()
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
+                return Content("");
+
+            return PartialView();
+        }
+        [HttpPost]
+        public virtual ActionResult OrderByStoreReportList(DataSourceRequest command)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
+                return AccessDeniedKendoGridJson();
+
+            //a vendor doesn't have access to this report
+            if (_workContext.CurrentVendor != null)
+                return Content("");
+
+            var report = new List<OrderAverageReportLineSummary>();
+            report.Add(_orderReportService.OrderAverageReport(0, OrderStatus.Pending));
+            report.Add(_orderReportService.OrderAverageReport(0, OrderStatus.Processing));
+            report.Add(_orderReportService.OrderAverageReport(0, OrderStatus.Complete));
+            report.Add(_orderReportService.OrderAverageReport(0, OrderStatus.Cancelled));
+            var model = report.Select(x => new OrderAverageReportLineSummaryModel
+            {
+                OrderStatus = x.OrderStatus.GetLocalizedEnum(_localizationService, _workContext),
+                SumTodayOrders = _priceFormatter.FormatPrice(x.SumTodayOrders, true, false),
+                SumThisWeekOrders = _priceFormatter.FormatPrice(x.SumThisWeekOrders, true, false),
+                SumThisMonthOrders = _priceFormatter.FormatPrice(x.SumThisMonthOrders, true, false),
+                SumThisYearOrders = _priceFormatter.FormatPrice(x.SumThisYearOrders, true, false),
+                SumAllTimeOrders = _priceFormatter.FormatPrice(x.SumAllTimeOrders, true, false),
+            }).ToList();
+
+            var gridModel = new DataSourceResult
+            {
+                Data = model,
+                Total = model.Count
+            };
+
+            return Json(gridModel);
+        }
+
+        #endregion
+
         #region Activity log
 
         [NonAction]

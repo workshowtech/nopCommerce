@@ -103,6 +103,14 @@
                     </div>
                 </div>
             }
+            @if (canManageOrders)
+            {
+                <div class="row">
+                    <div class="col-md-6">
+                        @Html.Action("OrderByStoreReport", "Order")
+                    </div>
+                </div>
+            }
             @Html.Widget("admin_dashboard_bottom")
         </div>
     </div>

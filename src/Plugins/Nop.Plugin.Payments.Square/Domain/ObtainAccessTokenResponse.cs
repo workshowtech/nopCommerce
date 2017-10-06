@@ -9,7 +9,7 @@ namespace Nop.Plugin.Payments.Square.Domain
     public class ObtainAccessTokenResponse
     {
         /// <summary>
-        /// Gets or sets application's access token
+        /// Gets or sets application access token
         /// </summary>
         [JsonProperty(PropertyName = "access_token")]
         public string AccessToken { get; set; }

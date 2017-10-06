@@ -23,6 +23,7 @@ namespace Nop.Plugin.Payments.Square.Services
         #region Fields
         
         private readonly ILogger _logger;
+        private readonly IWorkContext _workContext;
         private readonly SquarePaymentSettings _squarePaymentSettings;
 
         #endregion
@@ -30,9 +31,11 @@ namespace Nop.Plugin.Payments.Square.Services
         #region Ctor
 
         public SquarePaymentManager(ILogger logger,
+            IWorkContext workContext,
             SquarePaymentSettings squarePaymentSettings)
         {
             this._logger = logger;
+            this._workContext = workContext;
             this._squarePaymentSettings = squarePaymentSettings;
         }
 
@@ -100,7 +103,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return new List<Location>();
             }
@@ -145,7 +148,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -189,7 +192,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -229,7 +232,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -270,7 +273,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -319,7 +322,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -365,7 +368,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return false;
             }
@@ -411,7 +414,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return false;
             }
@@ -457,7 +460,7 @@ namespace Nop.Plugin.Payments.Square.Services
                     errorMessage = $"{errorMessage} Details: {apiException.ErrorCode} - {apiException.ErrorContent}";
 
                 //log errors
-                _logger.Error(errorMessage, exception);
+                _logger.Error(errorMessage, exception, _workContext.CurrentCustomer);
 
                 return null;
             }
@@ -530,7 +533,7 @@ namespace Nop.Plugin.Payments.Square.Services
             //create query parameters for the request
             var queryParameters = new Dictionary<string, string>
             {
-                //The application's ID.
+                //The application ID.
                 ["client_id"] = _squarePaymentSettings.ApplicationId,
 
                 //Indicates whether you want to receive an authorization code ("code") or an access token ("token").
@@ -570,7 +573,7 @@ namespace Nop.Plugin.Payments.Square.Services
             //create web request
             var serviceUrl = $"{GetOAuthServiceUrl()}/token";
             var request = (HttpWebRequest)WebRequest.Create(serviceUrl);
-            request.Method = "POST";
+            request.Method = WebRequestMethods.Http.Post;
             request.Accept = "application/json";
             request.ContentType = "application/json";
             request.ContentLength = postData.Length;
@@ -605,7 +608,7 @@ namespace Nop.Plugin.Payments.Square.Services
             //create web request
             var serviceUrl = $"{GetOAuthServiceUrl()}/clients/{accessTokenRequest.ApplicationId}/access-token/renew";
             var request = (HttpWebRequest)WebRequest.Create(serviceUrl);
-            request.Method = "POST";
+            request.Method = WebRequestMethods.Http.Post;
             request.Accept = "application/json";
             request.ContentType = "application/json";
             request.ContentLength = postData.Length;

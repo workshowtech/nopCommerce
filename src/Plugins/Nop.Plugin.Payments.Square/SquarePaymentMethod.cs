@@ -110,7 +110,7 @@ namespace Nop.Plugin.Payments.Square
         /// <summary>
         /// Process a payment
         /// </summary>
-        /// <param name="processPaymentRequest">Payment info required for an order processing</param>
+        /// <param name="paymentRequest">Payment info required for an order processing</param>
         /// <param name="isRecurringPayment">Whether it is a recurring payment</param>
         /// <returns>Process payment result</returns>
         private ProcessPaymentResult ProcessPayment(ProcessPaymentRequest paymentRequest, bool isRecurringPayment)
@@ -194,7 +194,7 @@ namespace Nop.Plugin.Payments.Square
 
             //the transaction is ineligible for chargeback protection if they are not provided
             if ((billingAddress == null && shippingAddress == null) || string.IsNullOrEmpty(email))
-                _logger.Warning("Square payment warning: Address or email is not provided, so the transaction is ineligible for chargeback protection");
+                _logger.Warning("Square payment warning: Address or email is not provided, so the transaction is ineligible for chargeback protection", customer: customer);
 
             //the amount of money, in the smallest denomination of the currency indicated by currency. For example, when currency is USD, amount is in cents;
             //most currencies consist of 100 units of smaller denomination, so we multiply the total by 100
@@ -213,8 +213,9 @@ namespace Nop.Plugin.Payments.Square
                 ShippingAddress: shippingAddress
             );
 
-            //try to get previosly stored card details
-            if (paymentRequest.CustomValues.TryGetValue("StoredCardId", out object storedCardId) && !storedCardId.ToString().Equals("0"))
+            //try to get previously stored card details
+            var storedCardKey = _localizationService.GetResource("Plugins.Payments.Square.Fields.StoredCard.Key");
+            if (paymentRequest.CustomValues.TryGetValue(storedCardKey, out object storedCardId) && !storedCardId.ToString().Equals("0"))
             {
                 //check whether customer exists
                 var customerId = customer.GetAttribute<string>(SquarePaymentDefaults.CustomerIdAttribute);
@@ -229,17 +230,19 @@ namespace Nop.Plugin.Payments.Square
             }
 
             //or try to get the card nonce
-            if (!paymentRequest.CustomValues.TryGetValue("CardNonce", out object cardNonce) || string.IsNullOrEmpty(cardNonce?.ToString()))
+            var cardNonceKey = _localizationService.GetResource("Plugins.Payments.Square.Fields.CardNonce.Key");
+            if (!paymentRequest.CustomValues.TryGetValue(cardNonceKey, out object cardNonce) || string.IsNullOrEmpty(cardNonce?.ToString()))
                 throw new NopException("Failed to get the card nonce");
 
             //remove the card nonce from payment custom values, since it is no longer needed
-            paymentRequest.CustomValues.Remove("CardNonce");
+            paymentRequest.CustomValues.Remove(cardNonceKey);
 
             //whether to save card details for the future purchasing
-            if (paymentRequest.CustomValues.TryGetValue("SaveCard", out object saveCardValue) && saveCardValue is bool saveCard && saveCard)
+            var saveCardKey = _localizationService.GetResource("Plugins.Payments.Square.Fields.SaveCard.Key");
+            if (paymentRequest.CustomValues.TryGetValue(saveCardKey, out object saveCardValue) && saveCardValue is bool saveCard && saveCard)
             {
                 //remove the value from payment custom values, since it is no longer needed
-                paymentRequest.CustomValues.Remove("SaveCard");
+                paymentRequest.CustomValues.Remove(saveCardKey);
 
                 try
                 {
@@ -276,10 +279,11 @@ namespace Nop.Plugin.Payments.Square
                     );
 
                     //set postal code
-                    if (paymentRequest.CustomValues.TryGetValue("PostalCode", out object postalCode) && !string.IsNullOrEmpty(postalCode.ToString()))
+                    var postalCodeKey = _localizationService.GetResource("Plugins.Payments.Square.Fields.PostalCode.Key");
+                    if (paymentRequest.CustomValues.TryGetValue(postalCodeKey, out object postalCode) && !string.IsNullOrEmpty(postalCode.ToString()))
                     {
                         //remove the value from payment custom values, since it is no longer needed
-                        paymentRequest.CustomValues.Remove("PostalCode");
+                        paymentRequest.CustomValues.Remove(postalCodeKey);
 
                         cardRequest.BillingAddress = cardRequest.BillingAddress ?? new SquareModel.Address();
                         cardRequest.BillingAddress.PostalCode = postalCode.ToString();
@@ -292,7 +296,7 @@ namespace Nop.Plugin.Payments.Square
 
                     //save card identifier to payment custom values for further purchasing
                     if (isRecurringPayment)
-                        paymentRequest.CustomValues.Add("StoredCardId", card.Id);
+                        paymentRequest.CustomValues.Add(storedCardKey, card.Id);
 
                     //set 'card on file' to charge
                     chargeRequest.CustomerId = squareCustomer.Id;
@@ -301,7 +305,7 @@ namespace Nop.Plugin.Payments.Square
                 }
                 catch (Exception exception)
                 {
-                    _logger.Warning(exception.Message);
+                    _logger.Warning(exception.Message, exception, customer);
                     if (isRecurringPayment)
                         throw new NopException("For recurring payments you need to save the card details");
                 }
@@ -382,7 +386,7 @@ namespace Nop.Plugin.Payments.Square
             if (!successfully—aptured)
                 throw new NopException("An error occurred while processing. Error details in the log");
 
-            //sucessfully captured
+            //successfully captured
             return new CapturePaymentResult
             {
                 NewPaymentStatus = PaymentStatus.Paid,
@@ -448,7 +452,7 @@ namespace Nop.Plugin.Payments.Square
             if (createdRefund.Status != SquareModel.Refund.StatusEnum.APPROVED)
                 throw new NopException($"Refund is {createdRefund.Status}");
 
-            //sucessfully refunded
+            //successfully refunded
             return new RefundPaymentResult
             {
                 NewPaymentStatus = PaymentStatus.PartiallyRefunded
@@ -471,7 +475,7 @@ namespace Nop.Plugin.Payments.Square
             if (!successfullyVoided)
                 throw new NopException("An error occurred while processing. Error details in the log");
 
-            //sucessfully voided
+            //successfully voided
             return new VoidPaymentResult
             {
                 NewPaymentStatus = PaymentStatus.Voided
@@ -544,16 +548,16 @@ namespace Nop.Plugin.Payments.Square
 
             //pass custom values to payment processor
             if (form.TryGetValue("CardNonce", out StringValues cardNonce) && !StringValues.IsNullOrEmpty(cardNonce))
-                paymentRequest.CustomValues.Add("CardNonce", cardNonce.ToString());
+                paymentRequest.CustomValues.Add(_localizationService.GetResource("Plugins.Payments.Square.Fields.CardNonce.Key"), cardNonce.ToString());
 
             if (form.TryGetValue("StoredCardId", out StringValues storedCardId) && !StringValues.IsNullOrEmpty(storedCardId) && !storedCardId.Equals("0"))
-                paymentRequest.CustomValues.Add("StoredCardId", storedCardId.ToString());
+                paymentRequest.CustomValues.Add(_localizationService.GetResource("Plugins.Payments.Square.Fields.StoredCard.Key"), storedCardId.ToString());
 
             if (form.TryGetValue("SaveCard", out StringValues saveCardValue) && !StringValues.IsNullOrEmpty(storedCardId) && bool.TryParse(saveCardValue[0], out bool saveCard) && saveCard)
-                paymentRequest.CustomValues.Add("SaveCard", saveCard);
+                paymentRequest.CustomValues.Add(_localizationService.GetResource("Plugins.Payments.Square.Fields.SaveCard.Key"), saveCard);
 
             if (form.TryGetValue("PostalCode", out StringValues postalCode) && !StringValues.IsNullOrEmpty(postalCode))
-                paymentRequest.CustomValues.Add("PostalCode", postalCode.ToString());
+                paymentRequest.CustomValues.Add(_localizationService.GetResource("Plugins.Payments.Square.Fields.PostalCode.Key"), postalCode.ToString());
 
             return paymentRequest;
         }
@@ -613,16 +617,20 @@ namespace Nop.Plugin.Payments.Square
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationId", "Application ID");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationId.Hint", "Enter your application's ID, available from the application dashboard.");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationId.Hint", "Enter your application ID, available from the application dashboard.");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationSecret", "Application secret");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationSecret.Hint", "Enter your application's secret, available from the application dashboard.");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationSecret.Hint", "Enter your application secret, available from the application dashboard.");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.CardNonce.Key", "Pay using card nonce");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.Location", "Business location");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.Location.Hint", "Choose your business's locations. Location is a required parameter for payment requests.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.Location.NotExist", "-------");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.Location.Hint", "Choose your business locations. Location is a required parameter for payment requests.");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.Location.NotExist", "No locations");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.PostalCode", "Postal code");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.PostalCode.Key", "Postal code");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.SaveCard", "Save the card data for future purchasing");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.SaveCard.Key", "Save card details");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard", "Use a previously saved card");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard.NotExist", "-------");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard.Key", "Pay using stored card token");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard.NotExist", "No cards saved");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.TransactionMode", "Transaction mode");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Fields.TransactionMode.Hint", "Choose the transaction mode.");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Square.Instructions", @"
@@ -678,12 +686,16 @@ namespace Nop.Plugin.Payments.Square
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationId.Hint");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationSecret");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.ApplicationSecret.Hint");
+            this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.CardNonce.Key");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.Location");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.Location.Hint");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.Location.NotExist");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.PostalCode");
+            this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.PostalCode.Key");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.SaveCard");
+            this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.SaveCard.Key");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard");
+            this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard.Key");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.StoredCard.NotExist");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.TransactionMode");
             this.DeletePluginLocaleResource("Plugins.Payments.Square.Fields.TransactionMode.Hint");

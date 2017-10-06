@@ -44,8 +44,9 @@
         $('#@Html.IdFor(model => model.StoredCardId)').change(toggleStoredCard);
         toggleStoredCard();
 
-        var onePageCheckout = @orderSettings.OnePageCheckoutEnabled.ToString().ToLower();
         var submitForm = false;
+        var errorsExist = false;
+        var onePageCheckout = @orderSettings.OnePageCheckoutEnabled.ToString().ToLower();
         $('.payment-info-next-step-button').attr('onclick', null);
 
         $.getScript('https://js.squareup.com/v2/paymentform', function (data, textStatus, jqxhr) {
@@ -78,13 +79,14 @@
                             errors.forEach(function (error) {
                                 var currentErrorvalue = $('#@Html.IdFor(model => model.Errors)').val();
                                 $('#@Html.IdFor(model => model.Errors)').val(currentErrorvalue + '|' + error.message);
+                                errorsExist = true;
+                                paymentForm.destroy();
                             });
                         }
                         else {
                             $('#@Html.IdFor(model => model.CardNonce)').val(nonce);
                         }
 
-                        paymentForm.destroy();
                         submitForm = true;
                         $('input.payment-info-next-step-button').click();
                     },
@@ -104,13 +106,13 @@
             $('input.payment-info-next-step-button').on('click', function (data) {
                 var selectedStoredCardId = $('#@Html.IdFor(model => model.StoredCardId)').val()
                 if (!submitForm && (!selectedStoredCardId || selectedStoredCardId == '0')) {
-                    if (submitForm == false) {
+                    if (!errorsExist) {
                         paymentForm.requestCardNonce();
                     }
                     return false;
                 }
                 else if (onePageCheckout) {
-                    submitForm = null;
+                    submitForm = false;
                     PaymentInfo.save();
                 }
             });

@@ -8,13 +8,13 @@ namespace Nop.Plugin.Payments.Square.Domain
     public class RenewAccessTokenRequest
     {
         /// <summary>
-        /// Gets or sets application's ID
+        /// Gets or sets application ID
         /// </summary>
         [JsonIgnore]
         public string ApplicationId { get; set; }
 
         /// <summary>
-        /// Gets or sets application's secret
+        /// Gets or sets application secret
         /// </summary>
         [JsonIgnore]
         public string ApplicationSecret { get; set; }

@@ -90,7 +90,7 @@ namespace Nop.Plugin.Payments.Square.Controllers
                 AdditionalFeePercentage = _squarePaymentSettings.AdditionalFeePercentage
             };
 
-            //prepare business' locations, every payment a merchant processes is associated with one of these locations
+            //prepare business locations, every payment a merchant processes is associated with one of these locations
             if (!string.IsNullOrEmpty(model.AccessToken))
             {
                 model.Locations = _squarePaymentManager.GetActiveLocations()

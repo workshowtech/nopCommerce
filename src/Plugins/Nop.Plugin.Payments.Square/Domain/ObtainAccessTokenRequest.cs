@@ -8,13 +8,13 @@ namespace Nop.Plugin.Payments.Square.Domain
     public class ObtainAccessTokenRequest
     {
         /// <summary>
-        /// Gets or sets application's ID
+        /// Gets or sets application ID
         /// </summary>
         [JsonProperty(PropertyName = "client_id")]
         public string ApplicationId { get; set; }
 
         /// <summary>
-        /// Gets or sets application's secret
+        /// Gets or sets application secret
         /// </summary>
         [JsonProperty(PropertyName = "client_secret")]
         public string ApplicationSecret { get; set; }

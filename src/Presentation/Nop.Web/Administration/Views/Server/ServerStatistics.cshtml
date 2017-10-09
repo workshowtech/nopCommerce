@@ -1,0 +1,175 @@
+﻿@using Nop.Core
+@using Nop.Services.Common
+
+@{
+    var address = ViewContext.RouteData.Values["ip"].ToString();
+    var addressString = address.Replace(".", "");
+
+    string prefix = string.Concat("server-statistics-", addressString);
+    string hidePanelAttributeName = string.Concat("HideServerStatisticsPanel", addressString);
+    var hidePanel = EngineContext.Current.Resolve<IWorkContext>().CurrentCustomer.GetAttribute<bool>(hidePanelAttributeName);
+
+
+    var chartId = string.Concat("chart_div_", address.Replace(".", ""));
+}
+
+<div class="box box-info @if (hidePanel) {<text>collapsed-box</text>}" id="@(prefix)-box">
+    <div class="box-header with-border">
+        <h3 class="box-title">
+            <i class="fa fa-server"></i>
+            @T("Admin.ServerReport.ServerStatistics." + address)
+        </h3>
+        <div class="box-tools pull-right">
+            <button class="btn btn-box-tool margin-l-10" data-widget="collapse">
+                @if (hidePanel)
+                {
+                    <text><i class="fa fa-plus"></i></text>
+                }
+                else
+                {
+                    <text><i class="fa fa-minus"></i></text>
+                }
+            </button>
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="chart">
+            @*<canvas id="@(prefix)-chart"></canvas>*@
+            <div id="@(chartId)"></div>
+            @*<div id="@(chartIdB)" style="margin-left:calc(50% - 162px)"></div>*@
+        </div>
+    </div>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+        var collapsed = !$('#@(prefix)-box').hasClass('collapsed-box');
+        var osCurrentAddress;
+        var itemChart;
+
+        $('#@(prefix)-box').on('click', 'button[data-widget="collapse"]', function () {
+            collapsed = !$('#@(prefix)-box').hasClass('collapsed-box');
+            saveUserPreferences('@(Url.Action("SavePreference", "Preferences"))', '@hidePanelAttributeName', collapsed);
+            if (!collapsed) {
+                $('#@(prefix)-box button[data-chart-role="toggle-chart"]').removeAttr('disabled');
+                if (!osCurrentAddress) {
+                    @*$('#@(prefix)-box button[data-chart-role="toggle-chart"][data-chart-address="@(address)"]').trigger('click');*@
+                    collapsed = true;
+                    $(changeServer('@(address)', 1));
+                }
+            } else {
+                $('#@(prefix)-box button[data-chart-role="toggle-chart"]').attr('disabled', 'disabled');
+                collapsed = false;
+            }
+        });
+
+        function changeServer(ipAddress, drawChart) {
+            if (collapsed) {
+                var data = [];
+                var chartData = [];
+                var chartDataA = [];
+                var chartDataB = [];
+
+                var sendInfo = {
+                    machineAddress: ipAddress
+                };
+
+                osCurrentAddress = true;
+
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: 'https://api.workshow.com.br/v1/Dashboard/SystemMachine/545AD60B13FB0EEFE61F9FD9654447B64C6BD7CB/willian.barbosa@workshow.com.br/x',
+                    data: {
+                        machineAddress: ipAddress
+                    },
+                    success: function (jsonData) {
+                        chartDataA = JSON.stringify(jsonData[0][1]).replace(/\[/g, "").replace(/\]/g, "").split(',');
+                        chartDataB = JSON.stringify(jsonData[1][1]).replace(/\[/g, "").replace(/\[/g, "").split(',');
+
+                        chartData = new google.visualization.DataTable(
+                             {
+                                 cols: [{ id: 'task', label: 'Task', type: 'string' },
+                                          { id: 'percent', label: 'Percent', type: 'number' }],
+                                 rows: [{ c: [{ v: 'CPU' }, { v: chartDataA[0] }] },
+                                        { c: [{ v: 'Memory' }, { v: chartDataA[1] }] },
+                                        { c: [{ v: 'Network' }, { v: chartDataA[2] }] },
+                                        { c: [{ v: 'HD Transf' }, { v: chartDataB[0] }] },
+                                        { c: [{ v: 'HD Used' }, { v: chartDataB[1] }] }
+                                 ]
+                             },
+                           0.6
+                        );
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        alert('Failed to load server statistics.');
+                    }
+                }).done(function () {
+                    if (drawChart == 0) {
+                        options = {
+                            width: 510, height: 200,
+                            redFrom: 90, redTo: 100,
+                            yellowFrom: 75, yellowTo: 90,
+                            minorTicks: 5,
+                            animation: {
+                                duration: 1000,
+                                easing: 'out',
+                                startup: true
+                            }
+                        };
+
+                        itemChart.draw(chartData, options);
+                    } else {
+                        generateChart(chartData, ipAddress);
+                    }
+
+                    osCurrentAddress = false;
+                });
+            }
+        }
+
+        function generateChart(data, ipAddress) {
+            var options;
+            var divChartId = 'chart_div_' + ipAddress.split('.').join('');
+
+            options = {
+                width: 510, height: 200,
+                redFrom: 90, redTo: 100,
+                yellowFrom: 75, yellowTo: 90,
+                minorTicks: 5,
+                animation: {
+                    duration: 1000,
+                    easing: 'out',
+                    startup: true
+                }
+            };
+
+            itemChart = new google.visualization.Gauge(document.getElementById(divChartId));
+            itemChart.draw(data, options);
+
+            if (collapsed) {
+                setInterval(function () {
+                    if (collapsed) {
+                        changeServer(ipAddress, 0);
+                    }
+                }, 5000);
+            }
+        }
+
+        $('#@(prefix)-box button[data-chart-role="toggle-chart"]').on('click', function () {
+            alert('data-chart-address');
+            var address = $(this).attr('data-chart-address');
+            changeServer(address, 1);
+            $('#@(prefix)-box button[data-chart-role="toggle-chart"]').removeClass('bg-light-blue');
+            $(this).addClass('bg-light-blue');
+        });
+
+        @if (!hidePanel)
+        {
+            <text>
+                $(changeServer('@(address)', 1));
+            </text>
+        }
+    });
+</script>

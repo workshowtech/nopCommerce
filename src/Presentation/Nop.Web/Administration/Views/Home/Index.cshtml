@@ -13,6 +13,8 @@
     var canManageCustomers = permissionService.Authorize(StandardPermissionProvider.ManageCustomers);
     var canManageProducts = permissionService.Authorize(StandardPermissionProvider.ManageProducts);
     var canManageReturnRequests = permissionService.Authorize(StandardPermissionProvider.ManageReturnRequests);
+
+    var canManageServers = permissionService.Authorize(StandardPermissionProvider.ManageOrders);
 }
 
 @Html.AntiForgeryToken()
@@ -106,17 +108,30 @@
             @if (canManageOrders)
             {
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         @Html.Action("OrderByStoreReport", "Order")
                     </div>
                 </div>
             }
 
-            <div class="row">
-                <div class="col-md-6">
-                    @Html.Action("ServerStatistics", "Server")
+            @Html.Widget("admin_dashboard_manage_servers")
+            @if (!Model.IsLoggedInAsVendor && canManageServers)
+            {
+                @*<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>*@
+                <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+                @*<script type="text/javascript" src="https://www.google.com/uds/api/visualization/1.0/1195ca6324d5ce101c2f520f3c62c843/gauge+pt_BR.js"></script>*@
+                <script type="text/javascript">
+                    google.load("visualization", "1", { packages: ["corechart", "gauge"] });
+                </script>
+                <div class="row">
+                    <div class="col-md-6">
+                        @Html.Action("ServerStatistics", "Server", new { ip = "107.180.68.112" })
+                    </div>
+                    <div class="col-md-6">
+                        @Html.Action("ServerStatistics", "Server", new { ip = "107.180.69.202" })
+                    </div>
                 </div>
-            </div>
+            }
 
             @Html.Widget("admin_dashboard_bottom")
         </div>

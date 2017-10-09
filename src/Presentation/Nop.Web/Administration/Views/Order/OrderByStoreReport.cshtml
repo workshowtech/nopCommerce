@@ -1,15 +1,16 @@
 ﻿@using Nop.Core
 @using Nop.Services.Common
 @{
-    const string panelId = "order-bystore-report-box";
-    const string hidePanelAttributeName = "HideOrderAverageReportPanel";
+    const string panelId = "bestsellers-report-quantity-box-by-store";
+    const string hidePanelAttributeName = "HideBestsellersBriefReportByStore";
     var hidePanel = EngineContext.Current.Resolve<IWorkContext>().CurrentCustomer.GetAttribute<bool>(hidePanelAttributeName);
+    var gridPageSize = 5;
 }
 
 <div class="box box-info @if(hidePanel){<text>collapsed-box</text>}" id="@panelId">
     <div class="box-header with-border">
         <h3 class="box-title">
-            <i class="fa fa-money"></i>
+            <i class="fa fa-star"></i>
             @T("Admin.SalesReport.ByStore")
         </h3>
         <div class="box-tools pull-right">
@@ -25,8 +26,8 @@
             </button>
         </div>
     </div>
-    <div class="box-body" style="padding-bottom: 22px;">
-        <div id="average-order-report-grid"></div>
+    <div class="box-body">
+        <div id="bestsellers-bystore-grid"></div>
 
         <script>
             $(document).ready(function () {
@@ -35,12 +36,12 @@
                     saveUserPreferences('@(Url.Action("SavePreference", "Preferences"))', '@hidePanelAttributeName', collapsed);
                 });
 
-                $("#average-order-report-grid").kendoGrid({
+                $("#bestsellers-bystore-grid").kendoGrid({
                     dataSource: {
                         type: "json",
                         transport: {
                             read: {
-                                url: "@Html.Raw(Url.Action("OrderAverageReportList", "Order"))",
+                                url: "@Html.Raw(Url.Action("OrderByStoreReportList", "Order"))",
                                 type: "POST",
                                 dataType: "json",
                                 data: addAntiForgeryToken
@@ -51,20 +52,18 @@
                             total: "Total",
                             errors: "Errors"
                         },
-                        error: function (e) {
+                        error: function(e) {
                             display_kendoui_grid_error(e);
                             // Cancel the changes
                             this.cancelChanges();
                         },
+                        pageSize: @(gridPageSize),
                         serverPaging: true,
                         serverFiltering: true,
                         serverSorting: true
                     },
                     pageable: {
                         refresh: true,
-                        numeric: false,
-                        previousNext: false,
-                        info: false,
                         @Html.Partial("_GridPagerMessages")
                     },
                     editable: {
@@ -73,23 +72,21 @@
                     },
                     scrollable: false,
                     columns: [{
-                        field: "OrderStatus",
-                        title: "@T("Admin.SalesReport.Average.OrderStatus")"
+                        field: "ProductName",
+                        title: "@T("Admin.SalesReport.Bestsellers.Fields.Name")"
                     }, {
-                        field: "SumTodayOrders",
-                        title: "@T("Admin.SalesReport.Average.SumTodayOrders")"
+                        field: "TotalQuantity",
+                        title: "@T("Admin.SalesReport.Bestsellers.Fields.TotalQuantity")"
                     }, {
-                        field: "SumThisWeekOrders",
-                        title: "@T("Admin.SalesReport.Average.SumThisWeekOrders")"
+                        field: "TotalAmount",
+                        title: "@T("Admin.SalesReport.Bestsellers.Fields.TotalAmount")"
                     }, {
-                        field: "SumThisMonthOrders",
-                        title: "@T("Admin.SalesReport.Average.SumThisMonthOrders")"
-                    }, {
-                        field: "SumThisYearOrders",
-                        title: "@T("Admin.SalesReport.Average.SumThisYearOrders")"
-                    }, {
-                        field: "SumAllTimeOrders",
-                        title: "@T("Admin.SalesReport.Average.SumAllTimeOrders")"
+                        field: "ProductId",
+                        title: "@T("Admin.Common.View")",
+                        width: 100,
+                        headerAttributes: { style: "text-align:center" },
+                        attributes: { style: "text-align:center" },
+                        template: '<a class="btn btn-xs btn-default" href="@Url.Content("~/Admin/Product/Edit/")#=ProductId#"><i class="fa fa-eye"></i>@T("Admin.Common.View")</a>'
                     }]
                 });
             });

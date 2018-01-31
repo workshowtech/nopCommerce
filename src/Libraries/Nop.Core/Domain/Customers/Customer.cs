@@ -130,7 +130,13 @@ namespace Nop.Core.Domain.Customers
         ///  Gets or sets the store identifier in which customer registered
         /// </summary>
         public int RegisteredInStoreId { get; set; }
-        
+
+        /// <summary>
+        /// Customer Store Name, WorkShow Brilliant! Customization
+        /// </summary>
+        public string StoreNameCustomer { get; set; }
+
+
         #region Navigation properties
 
         /// <summary>

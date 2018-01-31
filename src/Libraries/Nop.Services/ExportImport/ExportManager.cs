@@ -1282,6 +1282,7 @@ namespace Nop.Services.ExportImport
             {
                 new PropertyByName<Order>("OrderId", p => p.Id),
                 new PropertyByName<Order>("StoreId", p => p.StoreId),
+                new PropertyByName<Order>("StoreName", p => p.Customer.StoreNameCustomer),
                 new PropertyByName<Order>("OrderGuid", p => p.OrderGuid, ignore),
                 new PropertyByName<Order>("CustomerId", p => p.CustomerId, ignore),
                 new PropertyByName<Order>("OrderStatusId", p => p.OrderStatusId, ignore),

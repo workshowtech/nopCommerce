@@ -40,6 +40,7 @@ using Nop.Services.Vendors;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Nop.Services.Customers;
 
 namespace Nop.Admin.Controllers
 {
@@ -89,6 +90,7 @@ namespace Nop.Admin.Controllers
 	    private readonly IPictureService _pictureService;
         private readonly ICustomerActivityService _customerActivityService;
 	    private readonly ICacheManager _cacheManager;
+        private readonly ICustomerService _customerService;
 
         private readonly OrderSettings _orderSettings;
         private readonly CurrencySettings _currencySettings;
@@ -101,7 +103,8 @@ namespace Nop.Admin.Controllers
 
         #region Ctor
 
-        public OrderController(IOrderService orderService, 
+        public OrderController(ICustomerService customerService, 
+            IOrderService orderService, 
             IOrderReportService orderReportService, 
             IOrderProcessingService orderProcessingService,
             IReturnRequestService returnRequestService,
@@ -198,6 +201,7 @@ namespace Nop.Admin.Controllers
             this._measureSettings = measureSettings;
             this._addressSettings = addressSettings;
             this._shippingSettings = shippingSettings;
+            this._customerService = customerService;
 		}
         
         #endregion
@@ -1148,10 +1152,11 @@ namespace Nop.Admin.Controllers
                 Data = orders.Select(x =>
                 {
                     var store = _storeService.GetStoreById(x.StoreId);
+                    var customer = _customerService.GetCustomerById(x.CustomerId);
                     return new OrderModel
                     {
                         Id = x.Id,
-                        StoreName = store != null ? store.Name : "Unknown",
+                        StoreName = customer != null ? customer.StoreNameCustomer : "Unknown",
                         OrderTotal = _priceFormatter.FormatPrice(x.OrderTotal, true, false),
                         OrderStatus = x.OrderStatus.GetLocalizedEnum(_localizationService, _workContext),
                         OrderStatusId = x.OrderStatusId,
@@ -4375,13 +4380,116 @@ namespace Nop.Admin.Controllers
             return PartialView();
         }
         [HttpPost]
-        public virtual ActionResult OrderByStoreReportList(DataSourceRequest command)
+        public virtual ActionResult OrderByStoreReportList(DataSourceRequest command, OrderListModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageOrders))
                 return AccessDeniedKendoGridJson();
 
-            var gridModel = GetBestsellersBriefReportModel(command.Page - 1,
-                command.PageSize, 1);
+            //a vendor should have access only to his products
+            if (_workContext.CurrentVendor != null)
+            {
+                model.VendorId = _workContext.CurrentVendor.Id;
+            }
+
+            DateTime? startDateValue = (model.StartDate == null) ? null
+                            : (DateTime?)_dateTimeHelper.ConvertToUtcTime(model.StartDate.Value, _dateTimeHelper.CurrentTimeZone);
+
+            DateTime? endDateValue = (model.EndDate == null) ? null
+                            : (DateTime?)_dateTimeHelper.ConvertToUtcTime(model.EndDate.Value, _dateTimeHelper.CurrentTimeZone).AddDays(1);
+
+            var orderStatusIds = !model.OrderStatusIds.Contains(0) ? model.OrderStatusIds : null;
+            var paymentStatusIds = !model.PaymentStatusIds.Contains(0) ? model.PaymentStatusIds : null;
+            var shippingStatusIds = !model.ShippingStatusIds.Contains(0) ? model.ShippingStatusIds : null;
+
+            var filterByProductId = 0;
+            var product = _productService.GetProductById(model.ProductId);
+            if (product != null && HasAccessToProduct(product))
+                filterByProductId = model.ProductId;
+
+            //load orders
+            var orders = _orderService.SearchOrders(storeId: model.StoreId,
+                vendorId: model.VendorId,
+                productId: filterByProductId,
+                warehouseId: model.WarehouseId,
+                paymentMethodSystemName: model.PaymentMethodSystemName,
+                createdFromUtc: startDateValue,
+                createdToUtc: endDateValue,
+                osIds: orderStatusIds,
+                psIds: paymentStatusIds,
+                ssIds: shippingStatusIds,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
+                orderNotes: model.OrderNotes,
+                pageIndex: command.Page - 1,
+                pageSize: command.PageSize);
+            var gridModel = new DataSourceResult
+            {
+                Data = orders.Select(x =>
+                {
+                    var store = _storeService.GetStoreById(x.StoreId);
+                    var customer = _customerService.GetCustomerById(x.CustomerId);
+                    return new OrderModel
+                    {
+                        Id = x.Id,
+                        StoreName = customer != null ? customer.StoreNameCustomer : "Unknown",
+                        OrderTotal = _priceFormatter.FormatPrice(x.OrderTotal, true, false),
+                        OrderStatus = x.OrderStatus.GetLocalizedEnum(_localizationService, _workContext),
+                        OrderStatusId = x.OrderStatusId,
+                        PaymentStatus = x.PaymentStatus.GetLocalizedEnum(_localizationService, _workContext),
+                        PaymentStatusId = x.PaymentStatusId,
+                        ShippingStatus = x.ShippingStatus.GetLocalizedEnum(_localizationService, _workContext),
+                        ShippingStatusId = x.ShippingStatusId,
+                        CustomerEmail = x.BillingAddress.Email,
+                        CustomerFullName = string.Format("{0} {1}", x.BillingAddress.FirstName, x.BillingAddress.LastName),
+                        CreatedOn = _dateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc),
+                        CustomOrderNumber = x.CustomOrderNumber
+                    };
+                }),
+                Total = orders.TotalCount
+            };
+
+            //summary report
+            //currently we do not support productId and warehouseId parameters for this report
+            var reportSummary = _orderReportService.GetOrderAverageReportLine(
+                storeId: model.StoreId,
+                vendorId: model.VendorId,
+                orderId: 0,
+                paymentMethodSystemName: model.PaymentMethodSystemName,
+                osIds: orderStatusIds,
+                psIds: paymentStatusIds,
+                ssIds: shippingStatusIds,
+                startTimeUtc: startDateValue,
+                endTimeUtc: endDateValue,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
+                orderNotes: model.OrderNotes);
+
+            var profit = _orderReportService.ProfitReport(
+                storeId: model.StoreId,
+                vendorId: model.VendorId,
+                paymentMethodSystemName: model.PaymentMethodSystemName,
+                osIds: orderStatusIds,
+                psIds: paymentStatusIds,
+                ssIds: shippingStatusIds,
+                startTimeUtc: startDateValue,
+                endTimeUtc: endDateValue,
+                billingEmail: model.BillingEmail,
+                billingLastName: model.BillingLastName,
+                billingCountryId: model.BillingCountryId,
+                orderNotes: model.OrderNotes);
+            var primaryStoreCurrency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId);
+            if (primaryStoreCurrency == null)
+                throw new Exception("Cannot load primary store currency");
+
+            gridModel.ExtraData = new OrderAggreratorModel
+            {
+                aggregatorprofit = _priceFormatter.FormatPrice(profit, true, false),
+                aggregatorshipping = _priceFormatter.FormatShippingPrice(reportSummary.SumShippingExclTax, true, primaryStoreCurrency, _workContext.WorkingLanguage, false),
+                aggregatortax = _priceFormatter.FormatPrice(reportSummary.SumTax, true, false),
+                aggregatortotal = _priceFormatter.FormatPrice(reportSummary.SumOrders, true, false)
+            };
 
             return Json(gridModel);
         }

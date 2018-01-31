@@ -33,6 +33,10 @@ namespace Nop.Admin.Models.Customers
        
         public bool UsernamesEnabled { get; set; }
 
+        [NopResourceDisplayName("Admin.Customers.Customers.Fields.StoreName")]
+        [AllowHtml]
+        public string StoreNameCustomer { get; set; }
+
         [NopResourceDisplayName("Admin.Customers.Customers.Fields.Username")]
         [AllowHtml]
         public string Username { get; set; }

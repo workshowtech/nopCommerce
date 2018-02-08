@@ -474,6 +474,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_Data\browscap.xml" />
+    <Content Include="App_Data\InstalledPlugins.txt" />
     <Content Include="App_Data\Install\Fast\create_required_data.sql" />
     <Content Include="App_Data\Install\Fast\create_sample_data.sql" />
     <Content Include="App_Data\Install\Fast\readme.txt" />
@@ -518,6 +519,7 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="App_Data\Install\SqlServer.Indexes.sql" />
+    <Content Include="App_Data\Settings.txt" />
     <Content Include="Content\BBEditor\ed.js" />
     <Content Include="Content\BBEditor\images\bold.gif" />
     <Content Include="Content\BBEditor\images\code.gif" />
@@ -628,6 +630,7 @@
     <Content Include="Content\samples\product_WomenTShirt.jpg" />
     <Content Include="Content\samples\p_attribute_print_1.jpg" />
     <Content Include="Content\samples\p_attribute_print_2.jpg" />
+    <Content Include="Properties\PublishProfiles\FolderProfile.pubxml.user" />
     <Content Include="Scripts\fineuploader\edit.gif" />
     <Content Include="Scripts\fineuploader\fineuploader-4.2.2.css" />
     <Content Include="Scripts\fineuploader\fineuploader-4.2.2.min.css" />

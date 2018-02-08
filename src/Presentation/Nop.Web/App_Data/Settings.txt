@@ -1,0 +1,2 @@
+DataProvider: sqlserver
+DataConnectionString: Data Source=107.180.69.202,54145;Initial Catalog=VirtualPlayCommerce;Integrated Security=False;Persist Security Info=False;User ID=WSCommerce;Password=workshow@2016

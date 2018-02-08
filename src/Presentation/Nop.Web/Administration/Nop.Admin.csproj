@@ -1062,6 +1062,7 @@
     <Content Include="Content\images\warnings-ajax-loader.gif" />
     <Content Include="Content\styles.css" />
     <Content Include="Content\fontAwesome\fonts\fontawesome-webfont.svg" />
+    <Content Include="Properties\PublishProfiles\FolderProfile.pubxml.user" />
     <Content Include="Scripts\admin.common.js" />
     <Content Include="Scripts\admin.navigation.js" />
     <Content Include="Scripts\admin.search.js" />
@@ -2559,7 +2560,7 @@
           <IISUrl>
           </IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
-          <UseCustomServer>True</UseCustomServer>
+          <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>http://www.nopcommerce.com/</CustomServerUrl>
           <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
         </WebProjectProperties>
